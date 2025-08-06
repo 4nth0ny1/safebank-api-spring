@@ -1,5 +1,6 @@
-package com.safebank.safebank_api;
+package com.safebank.safebank_api.repository;
 
+import com.safebank.safebank_api.model.Account;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
