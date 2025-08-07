@@ -1,2 +1,2 @@
-INSERT INTO account (account_number, balance) VALUES ('ACC1001', 500.00);
-INSERT INTO account (account_number, balance) VALUES ('ACC1002', 1200.50);
+INSERT INTO account (account_number, holder_name, balance) VALUES ('ACC1001', 'Billy Kicks', 500.00);
+INSERT INTO account (account_number, holder_name, balance) VALUES ('ACC1002', 'Zero Cool', 1200.50);

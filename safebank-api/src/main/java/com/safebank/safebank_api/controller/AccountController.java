@@ -2,7 +2,14 @@ package com.safebank.safebank_api.controller;
 
 import com.safebank.safebank_api.model.Account;
 import com.safebank.safebank_api.repository.AccountRepository;
+
+import jakarta.validation.Valid;
+
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,8 +35,8 @@ public class AccountController {
     }
 
     @PostMapping
-    public Account createAccount(@RequestBody Account account) {
-        return accountRepository.save(account);
+    public ResponseEntity<Account> createAccount(@Valid @RequestBody Account account) {
+        return new ResponseEntity<>(accountRepository.save(account), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{id}")
