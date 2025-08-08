@@ -187,5 +187,140 @@ class AccountServiceImplTest {
         verify(accountRepository, never()).delete(any());
     }
 
+    @Test
+    void shouldDepositAmount_WhenValidAccountAndAmount() {
+        // Arrange
+        Long accountId = 1L;
+        BigDecimal initialBalance = new BigDecimal("100.00");
+        BigDecimal depositAmount = new BigDecimal("50.00");
+        BigDecimal expectedBalance = initialBalance.add(depositAmount);
 
+        Account existingAccount = new Account();
+        existingAccount.setId(accountId);
+        existingAccount.setAccountNumber("ACC1001");
+        existingAccount.setHolderName("Anthony Stark");
+        existingAccount.setBalance(initialBalance);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(existingAccount));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Account updatedAccount = accountService.deposit(accountId, depositAmount);
+
+        // Assert
+        assertNotNull(updatedAccount);
+        assertEquals(expectedBalance, updatedAccount.getBalance());
+        verify(accountRepository, times(1)).findById(accountId);
+        verify(accountRepository, times(1)).save(existingAccount);
+    }
+
+    @Test
+    void shouldWithdrawAmount_WhenValidAccountAndAmount() {
+        Long accountId = 1L;
+        BigDecimal initialBalance = new BigDecimal("100.00");
+        BigDecimal withdrawAmount = new BigDecimal("25.00");
+        BigDecimal expectedBalance = new BigDecimal("75.00");
+
+        Account existingAccount = new Account();
+        existingAccount.setId(accountId);
+        existingAccount.setAccountNumber("ACC1001");
+        existingAccount.setHolderName("Anthony Stark");
+        existingAccount.setBalance(initialBalance);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(existingAccount));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Account updatedAccount = accountService.withdraw(accountId, withdrawAmount);
+
+        assertNotNull(updatedAccount);
+        assertEquals(expectedBalance, updatedAccount.getBalance());
+        verify(accountRepository, times(1)).findById(accountId);
+        verify(accountRepository, times(1)).save(existingAccount);
+    }
+
+    @Test
+    void shouldNotWithdraw_WhenAccountDoesNotExist() {
+        // Arrange
+        Long nonExistentId = 99L;
+        BigDecimal withdrawAmount = new BigDecimal("25.00");
+        when(accountRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
+            accountService.withdraw(nonExistentId, withdrawAmount);
+        });
+
+        assertTrue(exception.getMessage().contains("Account not found"));
+        verify(accountRepository, times(1)).findById(nonExistentId);
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowException_WhenWithdrawAmountExceedsBalance() {
+        // Arrange
+        Long accountId = 1L;
+        BigDecimal initialBalance = new BigDecimal("50.00");
+        BigDecimal withdrawAmount = new BigDecimal("100.00"); // More than balance
+
+        Account existingAccount = new Account();
+        existingAccount.setId(accountId);
+        existingAccount.setAccountNumber("ACC1001");
+        existingAccount.setHolderName("Anthony Stark");
+        existingAccount.setBalance(initialBalance);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(existingAccount));
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            accountService.withdraw(accountId, withdrawAmount);
+        });
+
+        assertTrue(exception.getMessage().contains("Insufficient balance"));
+        verify(accountRepository, times(1)).findById(accountId);
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldNotWithdraw_WhenInsufficientBalance() {
+        // Arrange
+        Long accountId = 1L;
+        BigDecimal initialBalance = new BigDecimal("30.00");
+        BigDecimal withdrawAmount = new BigDecimal("50.00");
+
+        Account existingAccount = new Account();
+        existingAccount.setId(accountId);
+        existingAccount.setAccountNumber("ACC1001");
+        existingAccount.setHolderName("Anthony Stark");
+        existingAccount.setBalance(initialBalance);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(existingAccount));
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            accountService.withdraw(accountId, withdrawAmount);
+        });
+
+        assertTrue(exception.getMessage().contains("Insufficient balance"));
+        verify(accountRepository, times(1)).findById(accountId);
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldNotWithdraw_WhenAmountIsZeroOrNegative() {
+        Long accountId = 1L;
+
+        // Test with zero
+        IllegalArgumentException zeroException = assertThrows(IllegalArgumentException.class, () -> {
+            accountService.withdraw(accountId, BigDecimal.ZERO);
+        });
+        assertTrue(zeroException.getMessage().contains("Withdrawal amount must be positive"));
+
+        // Test with negative value
+        IllegalArgumentException negativeException = assertThrows(IllegalArgumentException.class, () -> {
+            accountService.withdraw(accountId, new BigDecimal("-20.00"));
+        });
+        assertTrue(negativeException.getMessage().contains("Withdrawal amount must be positive"));
+
+        verify(accountRepository, never()).save(any());
+    }
 }

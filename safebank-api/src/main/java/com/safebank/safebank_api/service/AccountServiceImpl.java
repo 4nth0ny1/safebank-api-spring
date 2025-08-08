@@ -7,8 +7,11 @@ import com.safebank.safebank_api.service.AccountService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -55,6 +58,41 @@ public class AccountServiceImpl implements AccountService {
         return accountRepository.save(account);
     }
 
-    // Add other methods if needed
+    @Override
+    @Transactional
+    public Account deposit(Long id, BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Deposit amount must be positive");
+        }
+
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Account not found with id: " + id));
+
+        BigDecimal newBalance = account.getBalance().add(amount);
+        account.setBalance(newBalance);
+
+        return accountRepository.save(account);
+    }
+
+    @Override
+    @Transactional
+    public Account withdraw(Long id, BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Withdrawal amount must be positive");
+        }
+
+        Account existingAccount = accountRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Account not found with id: " + id));
+
+        if (existingAccount.getBalance().compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient balance");
+        }
+
+        existingAccount.setBalance(existingAccount.getBalance().subtract(amount));
+        return accountRepository.save(existingAccount);
+    }
+
+
+
 }
 
